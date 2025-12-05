@@ -56,8 +56,8 @@ class AnimeApp(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("Anime Explorer")
-        self.geometry("1200x800")
-        self.minsize(1000, 650)
+        self.geometry("1300x850")
+        self.minsize(1100, 700)
 
         self.current_page = 0
         self.current_results = []
@@ -68,68 +68,93 @@ class AnimeApp(ctk.CTk):
 
     def _build_ui(self):
         self._build_header()
-        self._build_search()        # Now with Year inputs!
+        self._build_search()
         self._build_cards_area()
         self._build_pagination()
 
     def _build_header(self):
         header = ctk.CTkFrame(self, height=80, fg_color="transparent")
         header.pack(fill="x", pady=(12, 0))
-        title = ctk.CTkLabel(header, text="Anime Explorer", font=ctk.CTkFont(size=34, weight="bold"),
+        title = ctk.CTkLabel(header, text="Anime Explorer", font=ctk.CTkFont(size=36, weight="bold"),
                              text_color=PALETTE[0])
-        title.pack(pady=12)
+        title.pack(pady=15)
 
     def _build_search(self):
         frame = ctk.CTkFrame(self)
-        frame.pack(pady=15, padx=25, fill="x")
+        frame.pack(pady=18, padx=30, fill="x")
 
         # Variables
         self.search_var = ctk.StringVar()
         self.genre_var = ctk.StringVar(value="(Any)")
         self.year_from_var = ctk.StringVar()
         self.year_to_var = ctk.StringVar()
+        self.remove_genre_var = ctk.StringVar(value="Remove genre...")
 
         # Title Search
-        ctk.CTkEntry(frame, width=400, height=42,
+        ctk.CTkEntry(frame, width=380, height=44,
                      placeholder_text="Search by title...",
                      textvariable=self.search_var,
-                     font=ctk.CTkFont(size=14)).pack(side="left", padx=(0, 10))
+                     font=ctk.CTkFont(size=14)).pack(side="left", padx=(0, 12))
 
-        # Genre Dropdown
+        # Genre filter
         self.genre_option = ctk.CTkOptionMenu(frame, values=["(Any)"], variable=self.genre_var, width=160)
-        self.genre_option.pack(side="left", padx=(0, 10))
+        self.genre_option.pack(side="left", padx=(0, 12))
 
-        # Year From
+        # Year range
         ctk.CTkLabel(frame, text="Year:", font=ctk.CTkFont(size=13)).pack(side="left")
-        ctk.CTkEntry(frame, width=90, height=42, placeholder_text="From",
-                     textvariable=self.year_from_var).pack(side="left", padx=(5, 3))
+        ctk.CTkEntry(frame, width=90, height=44, placeholder_text="From",
+                     textvariable=self.year_from_var).pack(side="left", padx=(8, 4))
+        ctk.CTkLabel(frame, text="→").pack(side="left", padx=4)
+        ctk.CTkEntry(frame, width=90, height=44, placeholder_text="To",
+                     textvariable=self.year_to_var).pack(side="left", padx=(4, 20))
 
-        ctk.CTkLabel(frame, text="→").pack(side="left")
+        # Search button
+        ctk.CTkButton(frame, text="Search", width=130, height=44,
+                      command=self.on_search_click, fg_color="#0066FF", font=ctk.CTkFont(size=14, weight="bold")).pack(side="left", padx=8)
 
-        ctk.CTkEntry(frame, width=90, height=42, placeholder_text="To",
-                     textvariable=self.year_to_var).pack(side="left", padx=(3, 15))
+        #Remove Genre Dropdown
+        self.remove_genre_menu = ctk.CTkOptionMenu(
+            frame,
+            values=["Remove genre..."],
+            variable=self.remove_genre_var,
+            width=200,
+            fg_color="#FF4444",
+            button_color="#CC0000",
+            button_hover_color="#AA0000",
+            command=self.on_remove_genre_selected
+        )
+        self.remove_genre_menu.pack(side="left", padx=8)
 
-        # Buttons
-        ctk.CTkButton(frame, text="Search", width=120, height=42,
-                      command=self.on_search_click, fg_color="#0066FF").pack(side="left", padx=5)
-        ctk.CTkButton(frame, text="Show All", width=120, height=42,
-                      command=self.on_show_all).pack(side="left")
+        # Show All
+        ctk.CTkButton(frame, text="Show All", width=130, height=44,
+                      command=self.on_show_all).pack(side="left", padx=8)
+
+
+        self.after(800, self.load_genres_into_dropdowns)
+
+    def load_genres_into_dropdowns(self):
+        try:
+            genres = sorted(redis_db.get_distinct_genres())
+            self.genre_option.configure(values=["(Any)"] + genres)
+            self.remove_genre_menu.configure(values=["Remove genre..."] + genres)
+        except:
+            self.after(1000, self.load_genres_into_dropdowns)  # retry
 
     def _build_cards_area(self):
         self.cards_frame = ctk.CTkScrollableFrame(self)
-        self.cards_frame.pack(fill="both", expand=True, padx=25, pady=10)
+        self.cards_frame.pack(fill="both", expand=True, padx=30, pady=12)
 
     def _build_pagination(self):
         pag = ctk.CTkFrame(self)
-        pag.pack(pady=15)
+        pag.pack(pady=18)
 
-        self.prev_btn = ctk.CTkButton(pag, text="Previous", width=120, command=self.prev_page)
-        self.page_label = ctk.CTkLabel(pag, text="Page 1 / 1", width=150)
-        self.next_btn = ctk.CTkButton(pag, text="Next", width=120, command=self.next_page)
+        self.prev_btn = ctk.CTkButton(pag, text="Previous", width=140, command=self.prev_page)
+        self.page_label = ctk.CTkLabel(pag, text="Page 1 / 1", width=180, font=ctk.CTkFont(size=14))
+        self.next_btn = ctk.CTkButton(pag, text="Next", width=140, command=self.next_page)
 
-        self.prev_btn.pack(side="left", padx=15)
-        self.page_label.pack(side="left", padx=15)
-        self.next_btn.pack(side="left", padx=15)
+        self.prev_btn.pack(side="left", padx=20)
+        self.page_label.pack(side="left", padx=20)
+        self.next_btn.pack(side="left", padx=20)
 
     # ----------------- Data & Search -----------------
     def load_all_anime(self):
@@ -139,13 +164,9 @@ class AnimeApp(ctk.CTk):
             anime_list = redis_db.get_all_anime()
             anime_list.sort(key=lambda x: x.get("title", "").lower())
             self.current_results = anime_list
-
-            genres = ["(Any)"] + sorted(redis_db.get_distinct_genres())
-            self.genre_option.configure(values=genres)
-
             self.current_page = 0
         except Exception as e:
-            msgbox.showerror("Database Error", f"Failed to load data:\n{e}")
+            msgbox.showerror("Error", f"Failed to load data:\n{e}")
         finally:
             self.is_loading = False
             self.after(0, self.render_page)
@@ -179,7 +200,7 @@ class AnimeApp(ctk.CTk):
             self.current_page = 0
             self.render_page()
         except Exception as e:
-            msgbox.showerror("Search Error", f"Search failed:\n{e}")
+            msgbox.showerror("Error", f"Search failed:\n{e}")
         finally:
             self.is_loading = False
 
@@ -188,9 +209,39 @@ class AnimeApp(ctk.CTk):
         self.genre_var.set("(Any)")
         self.year_from_var.set("")
         self.year_to_var.set("")
+        self.remove_genre_var.set("Remove genre...")
         threading.Thread(target=self.load_all_anime, daemon=True).start()
 
-    # ----------------- Rendering & Details (unchanged, just cleaned) -----------------
+    def on_remove_genre_selected(self, selected_genre):
+        if selected_genre == "Remove genre...":
+            return
+
+        if not msgbox.askyesno("Confirm Removal",
+                               f"Are you sure you want to PERMANENTLY remove the genre:\n\n"
+                               f"\"{selected_genre}\"\n\n"
+                               f"from ALL anime in the database?\n"
+                               f"This action cannot be undone.",
+                               icon="warning"):
+            self.remove_genre_var.set("Remove genre...")
+            return
+
+        # Perform removal
+        count = 0
+        all_anime = redis_db.get_all_anime()
+        for anime in all_anime:
+            genres = anime.get("genres", [])
+            if selected_genre in genres:
+                new_genres = [g for g in genres if g != selected_genre]
+                redis_db.update_anime(anime["id"], {"genres": new_genres})
+                count += 1
+
+        msgbox.showinfo("Success!",
+                        f"Genre \"{selected_genre}\" has been removed from {count} anime!")
+        
+        self.remove_genre_var.set("Remove genre...")
+        threading.Thread(target=self.load_all_anime, daemon=True).start()
+
+
     def render_page(self):
         for w in self.cards_frame.winfo_children():
             w.destroy()
@@ -210,39 +261,35 @@ class AnimeApp(ctk.CTk):
                 row = ctk.CTkFrame(self.cards_frame, fg_color="transparent")
                 row.pack(fill="x", pady=10, padx=10)
 
-            card = ctk.CTkFrame(row, width=320, height=540, corner_radius=16)
-            card.pack(side="left", padx=12, pady=8)
+            card = ctk.CTkFrame(row, width=360, height=600, corner_radius=18, border_width=1, border_color="#333")
+            card.pack(side="left", padx=15, pady=10)
             card.pack_propagate(False)
 
-            # Image
             img = cache_image(anime.get("image"))
             if img:
-                ctk_img = make_ctk_image(img, size=(260, 360))
+                ctk_img = make_ctk_image(img, size=(280, 400))
                 lbl = ctk.CTkLabel(card, image=ctk_img, text="")
                 lbl.image = ctk_img
                 lbl.pack(pady=(15, 8))
             else:
-                ctk.CTkLabel(card, text="No Image", text_color="gray").pack(pady=100)
+                ctk.CTkLabel(card, text="No Image", text_color="#666").pack(pady=120)
 
-            # Title & Meta
             ctk.CTkLabel(card, text=anime.get("title", "Unknown"),
-                         font=ctk.CTkFont(size=16, weight="bold"),
-                         wraplength=280, justify="center").pack(pady=(8, 4))
+                         font=ctk.CTkFont(size=17, weight="bold"),
+                         wraplength=300, justify="center").pack(pady=(10, 5))
 
             meta = f"{anime.get('score', 'N/A')} • {anime.get('year', '????')} • {anime.get('episodes', '?')} eps"
-            ctk.CTkLabel(card, text=meta, text_color="#CCCCCC").pack()
+            ctk.CTkLabel(card, text=meta, text_color="#BBBBBB").pack(pady=2)
 
             genres_txt = ", ".join(anime.get("genres", [])[:4])
             if len(anime.get("genres", [])) > 4: genres_txt += "..."
-            ctk.CTkLabel(card, text=genres_txt, font=ctk.CTkFont(size=11), wraplength=280).pack(pady=6)
+            ctk.CTkLabel(card, text=genres_txt, font=ctk.CTkFont(size=11), wraplength=300).pack(pady=8)
 
-            ctk.CTkButton(card, text="More Details", width=220, height=38,
-                          command=lambda a=anime: self.open_details(a)).pack(side="bottom", pady=15)
+            ctk.CTkButton(card, text="More Details", width=240, height=40,
+                          command=lambda a=anime: self.open_details(a)).pack(side="bottom", pady=18)
 
-        # Pagination state
         self.prev_btn.configure(state="normal" if self.current_page > 0 else "disabled")
         self.next_btn.configure(state="normal" if end < total else "disabled")
-
     def open_details(self, anime):
         win = ctk.CTkToplevel(self)
         win.title(anime.get("title", "Details"))
@@ -262,12 +309,6 @@ class AnimeApp(ctk.CTk):
         info = f"Score: {anime.get('score','—')}  |  Year: {anime.get('year','—')}  |  Episodes: {anime.get('episodes','—')}\n" \
                f"Rating: {anime.get('rating','—')}  |  Studio: {anime.get('studios','—')}"
         ctk.CTkLabel(win, text=info, font=ctk.CTkFont(size=14)).pack(pady=10)
-
-        syn = ctk.CTkTextbox(win, width=720, height=180, wrap="word")
-        syn.pack(padx=20, pady=10)
-        syn.insert("0.0", anime.get("synopsis", "No synopsis available."))
-        syn.configure(state="disabled")
-
         ctk.CTkLabel(win, text="Genres: " + ", ".join(anime.get("genres", []))).pack(pady=5)
 
         btns = ctk.CTkFrame(win)
@@ -276,6 +317,12 @@ class AnimeApp(ctk.CTk):
                       command=lambda: self.show_update_form(anime, win)).pack(side="left", padx=20)
         ctk.CTkButton(btns, text="Delete", fg_color="#FF3333",
                       command=lambda: self.confirm_delete(anime, win)).pack(side="left", padx=20)
+
+        syn = ctk.CTkTextbox(win, width=720, height=180, wrap="word")
+        syn.pack(padx=20, pady=10)
+        syn.insert("0.0", anime.get("synopsis", "No synopsis available."))
+        syn.configure(state="disabled")
+
 
         # Make modal only after everything is built
         win.transient(self)
