@@ -226,18 +226,15 @@ class AnimeApp(ctk.CTk):
             return
 
         # Perform removal
-        count = 0
-        all_anime = redis_db.get_all_anime()
-        for anime in all_anime:
-            genres = anime.get("genres", [])
-            if selected_genre in genres:
-                new_genres = [g for g in genres if g != selected_genre]
-                redis_db.update_anime(anime["id"], {"genres": new_genres})
-                count += 1
+        count_removed_anime = redis_db.remove_genre(selected_genre)
+        print(count_removed_anime)
+        if count_removed_anime > 0:
+            msgbox.showinfo("Success!",
+                            f"Genre \"{selected_genre}\" has been removed from {count_removed_anime} anime!")
+        else:
+            msgbox.showwarning("Warning!",
+                               f"the genre you selected (\"{selected_genre}\") was empty ")
 
-        msgbox.showinfo("Success!",
-                        f"Genre \"{selected_genre}\" has been removed from {count} anime!")
-        
         self.remove_genre_var.set("Remove genre...")
         threading.Thread(target=self.load_all_anime, daemon=True).start()
 

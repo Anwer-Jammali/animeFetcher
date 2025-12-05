@@ -97,3 +97,14 @@ def update_anime(key, data):
 def delete_anime(anime_id):
     print(anime_id)
     return r.delete(anime_id) > 0
+
+def remove_genre(selected_genre):
+    count = 0
+    all_anime = get_all_anime()
+    for anime in all_anime:
+        genres = anime.get("genres", [])
+        if selected_genre in genres:
+            new_genres = [g for g in genres if g != selected_genre]
+            update_anime(anime["id"], {"genres": new_genres})
+            count += 1
+    return count
